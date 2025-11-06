@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR & Link Scanner | PayGuard AI</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+    }
+    header {
+      background: #1e293b;
+      padding: 15px;
+    }
+    nav a {
+      color: #00b4d8;
+      margin: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      color: #00b4d8;
+      margin-top: 20px;
+    }
+    #reader {
+      width: 320px;
+      margin: 20px auto;
+      border: 2px solid #00b4d8;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      width: 300px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background: #0077b6;
+    }
+    .result {
+      margin-top: 15px;
+      font-size: 1.1em;
+    }
+    footer {
+      background: #1e293b;
+      padding: 10px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>PayGuard<span style="color:#00b4d8;">AI</span></h2>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="awareness.html">Awareness</a>
+      <a href="linkscanner.html" style="color:#00f5d4;">QR/Link Scanner</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>🔍 QR & Link Fraud Detector</h1>
+    <p>Scan QR codes or enter any link to detect scams, phishing, or unsafe websites.</p>
+
+    <div id="scannerSection">
+      <button id="startScanBtn">▶️ Start Scanning</button>
+      <p id="scanStatus">Click to start scanning using your camera</p>
+      <div id="reader"></div>
+      <p id="qrResult" class="result"></p>
+    </div>
+
+    <h2>Or Check Any Link Manually</h2>
+    <input type="text" id="urlInput" placeholder="Enter a website URL here">
+    <button id="checkLinkBtn">Check Link</button>
+    <p id="linkResult" class="result"></p>
+  </main>
+
+  <footer>
+    © 2025 PayGuard AI | Built by Sheetal Pal, BBD NITM
+  </footer>
+
+  <script>
+    let html5QrCode;
+    let isScanning = false;
+
+    const startScanBtn = document.getElementById("startScanBtn");
+    const scanStatus = document.getElementById("scanStatus");
+    const qrResult = document.getElementById("qrResult");
+
+    startScanBtn.onclick = () => {
+      if (isScanning) {
+        stopQrScanner();
+        startScanBtn.textContent = "▶️ Start Scanning";
+        scanStatus.textContent = "Scanner stopped.";
+        isScanning = false;
+      } else {
+        startQrScanner();
+        startScanBtn.textContent = "⏹️ Stop Scanning";
+        scanStatus.textContent = "📡 Scanning... hold QR in front of camera";
+        isScanning = true;
+      }
+    };
+
+    function startQrScanner() {
+      const qrRegionId = "reader";
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode(qrRegionId);
+      }
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        qrCodeMessage => {
+          qrResult.innerHTML = `
+            ✅ Scanned Link: <a href="${qrCodeMessage}" target="_blank">${qrCodeMessage}</a>
+          `;
+          scanStatus.textContent = "✅ Scan Complete!";
+          checkLinkSafety(qrCodeMessage);
+          stopQrScanner();
+          startScanBtn.textContent = "▶️ Start Scanning";
+          isScanning = false;
+        },
+        errorMessage => {}
+      ).catch(err => {
+        console.error("Camera start failed:", err);
+        scanStatus.textContent = "⚠️ Please allow camera access or reload the page.";
+      });
+    }
+
+    function stopQrScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          console.log("QR Scanner stopped.");
+        }).catch(err => console.log("Stop error:", err));
+      }
+    }
+
+    // Manual link checker
+    document.getElementById("checkLinkBtn").onclick = () => {
+      const input = document.getElementById("urlInput").value.trim();
+      checkLinkSafety(input);
+    };
+
+    // Fraud detection logic
+    async function checkLinkSafety(url) {
+      const linkResult = document.getElementById("linkResult");
+      const output = qrResult || linkResult;
+
+      if (!url) {
+        output.innerText = "⚠️ Please enter or scan a link.";
+        output.style.color = "yellow";
+        return;
+      }
+
+      // 🚨 Step 1: Basic keyword analysis
+      const suspiciousWords = ["free", "win", "verify", "reward", "login", "urgent", "bank", "claim"];
+      const isSuspicious = suspiciousWords.some(word => url.toLowerCase().includes(word));
+
+      // 🚨 Step 2: Google Safe Browsing (Optional — needs API key)
+      let safeBrowsingResult = "unknown";
+      try {
+        // (Use your API key here if available)
+        const API_KEY = "YOUR_API_KEY";
+        const body = {
+          client: { clientId: "payguard-ai", clientVersion: "1.0" },
+          threatInfo: {
+            threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+            platformTypes: ["ANY_PLATFORM"],
+            threatEntryTypes: ["URL"],
+            threatEntries: [{ url }]
+          }
+        };
+        const res = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${API_KEY}`, {
+          method: "POST",
+          body: JSON.stringify(body),
+          headers: { "Content-Type": "application/json" }
+        });
+        const data = await res.json();
+        if (data.matches && data.matches.length > 0) {
+          safeBrowsingResult = "dangerous";
+        } else {
+          safeBrowsingResult = "safe";
+        }
+      } catch (err) {
+        console.log("Safe Browsing API skipped (no key or offline mode)");
+      }
+
+      // 🚨 Step 3: Simple AI heuristic
+      const aiRiskScore = isSuspicious ? 0.7 : 0.1;
+
+      // ✅ Final Decision
+      if (safeBrowsingResult === "dangerous" || aiRiskScore > 0.5) {
+        output.innerText = "🚨 Suspicious or Unsafe Link Detected!";
+        output.style.color = "#ff4d6d";
+      } else {
+        output.innerText = "✅ This link looks safe (basic check).";
+        output.style.color = "#00f5d4";
+      }
+    }
+  </script>
+</body>
+</html>
+
+
+

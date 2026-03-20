@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "PayGuard AI Defense",
+  "version": "1.0",
+  "description": "Real-time phishing and fraud protection module.",
+  "permissions": ["activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "PayGuard AI is Active"
+  }
+}
